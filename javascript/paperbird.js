@@ -8,11 +8,11 @@ var resetLock = false;
 var Bird = {
 	// jump sound
 	jumpSound: new Howl({
-		src: ['jump.mp3']
+		src: ['../sounds/jump.mp3']
 	}),
 	// lose sound
 	loseSound: new Howl({
-		src: ['lose.mp3']
+		src: ['../sounds/lose.mp3']
 	}),
 	// initiaze the new bird
 	init: function( x, y, col){
@@ -138,6 +138,7 @@ var Building = {
 	setXPosition: function(x){
 		this.upperRect.position.x = x - (this.buildWidth/2);
 		this.lowerRect.position.x = x - (this.buildWidth/2);
+		this.scoreAdded = false;
 	}
 }
 
@@ -218,7 +219,6 @@ function checkLost(){
 // do this at each frame
 function onFrame(event) {
 	// check if game lost
-	console.log(gameLost + ' ' + resetLock);
 	if(!gameLost && !resetLock){
 		console.log("HERE")
 		for (var t=0; t<buildings.length; t++){
