@@ -1,11 +1,71 @@
 // set up variables
 var gameLost = false;
 var birdCollide = false;
-var score = 0;
-var topScore = 0;
 var resetLock = false;
+var buildings = [];
 
-var Bird = {
+// create a scoreboard
+var scoreboard = {
+	score: 0,
+	topScore: 0,	
+	init: function(){
+		this.background = new Path.Rectangle({
+				point: [10, 10],
+				size: [230, 90],
+				fillColor: '#3ed6f1'
+		});
+		this.background.opacity = 0.9;
+		// the static text
+		this.topScoreText = new PointText({
+			point: [35,45],
+			justification: 'left',
+			fontSize: 25,
+			fillColor: 'white',
+			content: "Top Score",
+			fontFamily: 'Pangolin'
+		});
+		this.scoreText = new PointText({
+			point: [35,80],
+			justification: 'left',
+			fontSize: 25,
+			fillColor: 'white',
+			content: "Score",
+			fontFamily: 'Pangolin'
+		});
+		// the number score display
+		this.scoreDisplay = topScoreText = new PointText({
+			point: [200,45],
+			justification: 'right',
+			fontSize: 25,
+			fillColor: 'white',
+			content: 0,
+			fontFamily: 'Pangolin'
+		});
+		this.topScoreDisplay = topScoreText = new PointText({
+			point: [200,80],
+			justification: 'right',
+			fontSize: 25,
+			fillColor: 'white',
+			content: 0,
+			fontFamily: 'Pangolin'
+		});
+	},
+	resetScore: function(){
+		this.score = 0;
+	},
+	refreshScore: function(){
+		if (this.topScore < this.score){
+			this.topScore = this.score;
+		}
+		this.scoreDisplay.content = this.score;
+		this.topScoreDisplay.content = this.topScore;
+	},
+	addScore: function(x){
+		this.score += x;
+	}
+}
+
+var bird = {
 	// jump sound
 	jumpSound: new Howl({
 		src: ['../sounds/jump.mp3']
@@ -77,13 +137,24 @@ var Building = {
 	scoreAdded: false,
 	// initiaze new building
 	init: function (x){
-		var rand = Math.floor((Math.random() * (view.viewSize.height - this.clearence - 30)) + 30);
+		var rand = Math.floor((Math.random() * (view.viewSize.height - this.clearence - 60)) + 30);
 		this.upperRect = new Path.Rectangle({
 			point: [x, 0],
 			size: [this.buildWidth, rand],
 			fillColor: {
 				gradient: {
-					stops: [["#42d151",0.1],['#38b745', 0.5], ['#1a471e', 1]],
+					stops: [["#42d151",0.1],['#38b745', 0.3], ['#1a471e', 1]],
+				},
+				origin: [x,0],
+				destination: [x+this.buildWidth,0]
+			}
+		});
+		this.upperRectTop = new Path.Rectangle({
+			point: [x-10, rand-25],
+			size: [this.buildWidth+20, 25],
+			fillColor: {
+				gradient: {
+					stops: [["#42d151",0.1],['#38b745', 0.7], ['#1a471e', 1]],
 				},
 				origin: [x,0],
 				destination: [x+this.buildWidth,0]
@@ -92,6 +163,17 @@ var Building = {
 		this.lowerRect = new Path.Rectangle({
 			point: [x, rand+this.clearence],
 			size: [this.buildWidth, view.viewSize.height - (rand+this.clearence)],
+			fillColor: {
+				gradient: {
+					stops: [["#42d151",0.1],['#38b745', 0.3], ['#1a471e', 1]],
+				},
+				origin: [x,0],
+				destination: [x+this.buildWidth,0]
+			}
+		});
+		this.lowerRectTop = new Path.Rectangle({
+			point: [x-10, rand+this.clearence],
+			size: [this.buildWidth+20, 25],
 			fillColor: {
 				gradient: {
 					stops: [["#42d151",0.1],['#38b745', 0.5], ['#1a471e', 1]],
@@ -105,92 +187,87 @@ var Building = {
 	animate: function(reX, thebird){
 		if (!this.scoreAdded){
 			if (thebird.bird.position.x > this.upperRect.position.x){
-				score++;
+				scoreboard.addScore(1);
 				this.scoreAdded = true;
 			}
 		}
 		else if (this.upperRect.position.x + this.buildWidth <= 0){
-			// generate new random number for new clearence
-			var rand = Math.floor((Math.random() * (view.viewSize.height - this.clearence - 30)) + 30);
-			// change upper rectangle
-			this.upperRect.scale(1,rand/this.upperRect.bounds.height);
-			this.upperRect.position = new Point(reX-this.buildWidth/2, this.upperRect.bounds.height/2);
-			// change lower rectangele	
-			this.lowerRect.scale(1,(view.viewSize.height - (rand+this.clearence))/this.lowerRect.bounds.height);
-			this.lowerRect.position = new Point(reX-this.buildWidth/2, (rand + this.clearence + view.viewSize.height)/2);
-			// set scoreAdded to false so that score can be added after respawn
-			this.scoreAdded = false;
-			
+			this.resetXPosition(reX);
 		}
 		this.upperRect.position.x -= this.velocity;
 		this.lowerRect.position.x -= this.velocity;
+		this.upperRectTop.position.x -= this.velocity;
+		this.lowerRectTop.position.x -= this.velocity;
 	},
+	// check if bird collides with the buildings
 	checkCollision: function(bird){
 		var collision = false;
-		if (this.upperRect.intersects(bird.bird)){
+		if (this.upperRect.intersects(bird.bird) || this.upperRectTop.intersects(bird.bird)){
 			collision = true;
-		}
-		if (this.lowerRect.intersects(bird.bird)){
+		} else if (this.lowerRect.intersects(bird.bird) || this.lowerRectTop.intersects(bird.bird)){
 			collision = true;
 		}
 		return collision;
 	},
-	setXPosition: function(x){
-		this.upperRect.position.x = x - (this.buildWidth/2);
-		this.lowerRect.position.x = x - (this.buildWidth/2);
+	resetXPosition: function(reX){
+		// generate new random number for new clearence
+		var rand = Math.floor((Math.random() * (view.viewSize.height - this.clearence - 60)) + 30);
+		// change upper rectangle
+		this.upperRect.scale(1,rand/this.upperRect.bounds.height);
+		this.upperRect.position = new Point(reX-this.buildWidth/2, this.upperRect.bounds.height/2);
+		// change lower rectangele	
+		this.lowerRect.scale(1,(view.viewSize.height - (rand+this.clearence))/this.lowerRect.bounds.height);
+		this.lowerRect.position = new Point(reX-this.buildWidth/2, (rand + this.clearence + view.viewSize.height)/2);
+		// change upperRectTop
+		this.upperRectTop.position = new Point(reX-this.buildWidth/2, this.upperRect.bounds.height - 12.5);
+		// change lowerRectTop
+		this.lowerRectTop.position = new Point(reX- this.buildWidth/2, rand+this.clearence);
+		// set scoreAdded to false so that score can be added after respawn
 		this.scoreAdded = false;
 	}
 }
 
-// create buildings
-var buildings = [];
-for (var t=view.viewSize.width; t<(2.25*view.viewSize.width); t+=(Building.buildDistance+Building.buildWidth)){
-	buildings.push(Object.create(Building));
-	buildings[buildings.length -1].init(t);
+
+
+function init(){
+	// create buildings
+	for (var t=view.viewSize.width; t<(2.25*view.viewSize.width); t+=(Building.buildDistance+Building.buildWidth)){
+		buildings.push(Object.create(Building));
+		buildings[buildings.length -1].init(t);
+	}
+	// set x from where the buildings will be respawned
+	respawnX = (buildings.length * (Building.buildWidth + Building.buildDistance));
+	
+	// create and initialize bird instance
+	bird.init(view.viewSize.width * 0.30, view.viewSize.height/2, "red");
+	
+	// init scoreboard
+	scoreboard.init();
 }
-// set x from where the buildings will be respawned
-respawnX = (buildings.length * (Building.buildWidth + Building.buildDistance));
 
-// create and initialize bird instance
-var bird = Object.create(Bird);
-bird.init(view.viewSize.width * 0.30, view.viewSize.height/2, "red");
+function reset(){
+	resetLock = true;
+	var xCood = view.viewSize.width;
+	for (var x = 0; x< buildings.length; x++){
+		buildings[x].resetXPosition(xCood);
+		xCood += Building.buildDistance+Building.buildWidth;
+	}
+	bird.setYPosition(view.viewSize.height/2);
+	scoreboard.resetScore();
+	birdCollide = false;
+	gameLost = false;
+	resetLock = false;
+}
 
-// the dashboard
-var scoreText = new PointText({
-	point: [50,30],
-	justification: 'center',
-	fontSize: 25,
-	fillColor: 'black',
-	content: 0
-});
-
-// the dashboard
-var topScoreText = new PointText({
-	point: [50,60],
-	justification: 'center',
-	fontSize: 25,
-	fillColor: 'black',
-	content: 0
-});
+init();
 
 // keypress listner to jump the bird
 function onKeyDown(event) {
-	console.log(event.key)
 	// When a key is released, set the content of the text item:
 	if ((event.key == 'space') && (!birdCollide)){
 		bird.jump();
 	} else if ((event.key == 'r') || (event.key == 'R')){
-		resetLock = true;
-		var xCood = view.viewSize.width;
-		for (var x = 0; x< buildings.length; x++){
-			buildings[x].setXPosition(xCood);
-			xCood += Building.buildDistance+Building.buildWidth;
-		}
-		bird.setYPosition(view.viewSize.height/2);
-		score = 0;
-		birdCollide = false;
-		gameLost = false;
-		resetLock = false;
+		reset();
 	}
 }
 
@@ -209,25 +286,18 @@ function checkLost(){
 			}
 		}
 	}
-	if (gameLost){
-		if (score > topScore){
-			topScore = score;
-		}
-	}
 }
 
 // do this at each frame
 function onFrame(event) {
 	// check if game lost
 	if(!gameLost && !resetLock){
-		console.log("HERE")
 		for (var t=0; t<buildings.length; t++){
 			buildings[t].animate(respawnX,bird);			
 		}
 		// move the bird
 		bird.animate();
-		scoreText.content = score;		
+		scoreboard.refreshScore();
 		checkLost();
 	}
-	topScoreText.content = topScore;
 }
