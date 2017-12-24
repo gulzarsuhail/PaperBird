@@ -87,7 +87,8 @@ var Bird = {
     // set up new bird
     bird: new Path.Circle({
         radius: 20,
-        fillColor: 'red'
+        fillColor: 'red',
+        center: [view.viewSize.width * 0.30, view.viewSize.height / 2]
     }),
 
     // resets the bird position
@@ -109,17 +110,17 @@ var Bird = {
     // animates the bird frame by frame
     animate: function () {
         // prevent bird escaping from top of the screen
-        if (this.bird.position.y <= 0) {
+        if (this.bird.position.y < 0) {
             // set position to 0 px
-            this.refreshScoreBoard.position.y = 0;
+            this.bird.position.y = 0;
             // set velocity to 0 to prevent flaky animation
             this.velocity = 0;
         }
         // moves the bird up or down
-        this.velocity.position.y += this.velocity;
+        this.bird.position.y += this.velocity;
         // dosen't let velocity exceed a value
         if (this.velocity < 15)
-            this.velocity -= 1.5;
+            this.velocity += 1.5;
     }
 }
 
@@ -134,50 +135,62 @@ var Pipe = {
     
     // create upper pipe
     upperRect: new Path.Rectangle({
-        size: [this.pipeWidth, rand],
-        fillColor: {
-            gradient: {
-                stops: [["#42d151", 0.1], ['#38b745', 0.3], ['#1a471e', 1]],
-            },
-            origin: [x, 0],
-            destination: [x + this.pipeWidth, 0]
-        }
+        point: [0,0],
+        size: [this.pipeWidth, 25],
+        strokeColor: 'black'
+
+        // fillColor: {
+        //     gradient: {
+        //         stops: [["#42d151", 0.1], ['#38b745', 0.3], ['#1a471e', 1]],
+        //     },
+        //     origin: [0, 0],
+        //     destination: [100, 0]
+        // }
     }),
 
     // create upper pipe cap
-    upperRectCap = new Path.Rectangle({
+    upperRectCap: new Path.Rectangle({
+        point: [0,0],
         size: [this.pipeWidth + 20, 25],
-        fillColor: {
-            gradient: {
-                stops: [["#42d151", 0.1], ['#38b745', 0.7], ['#1a471e', 1]],
-            },
-            origin: [x, 0],
-            destination: [x + this.pipeWidth, 0]
-        }
+        strokeColor: 'black'
+
+        // fillColor: {
+        //     gradient: {
+        //         stops: [["#42d151", 0.1], ['#38b745', 0.7], ['#1a471e', 1]],
+        //     },
+        //     origin: [0, 0],
+        //     destination: [100, 0]
+        // }
     }),
 
     // create lower pipe
-    lowerRect = new Path.Rectangle({
-        size: [this.pipeWidth, view.viewSize.height - (rand + this.clearence)],
-        fillColor: {
-            gradient: {
-                stops: [["#42d151", 0.1], ['#38b745', 0.3], ['#1a471e', 1]],
-            },
-            origin: [x, 0],
-            destination: [x + this.pipeWidth, 0]
-        }
+    lowerRect: new Path.Rectangle({
+        point: [0,0],
+        size: [this.pipeWidth, 25],
+        strokeColor: 'black'
+
+        // fillColor: {
+        //     gradient: {
+        //         stops: [["#42d151", 0.1], ['#38b745', 0.3], ['#1a471e', 1]],
+        //     },
+        //     origin: [0, 0],
+        //     destination: [100, 0]
+        // }
     }),
 
     // create lower pipe cap
-    lowerRectCap = new Path.Rectangle({
+    lowerRectCap: new Path.Rectangle({
+        point: [0,0],
         size: [this.pipeWidth + 20, 25],
-        fillColor: {
-            gradient: {
-                stops: [["#42d151", 0.1], ['#38b745', 0.5], ['#1a471e', 1]],
-            },
-            origin: [x, 0],
-            destination: [x + this.pipeWidth, 0]
-        }
+        strokeColor: 'black'
+
+        // fillColor: {
+        //     gradient: {
+        //         stops: [["#42d151", 0.1], ['#38b745', 0.5], ['#1a471e', 1]],
+        //     },
+        //     origin: [0, 0],
+        //     destination: [100, 0]
+        // }
     }),
 
     // initialize new pipes
@@ -201,21 +214,45 @@ var Pipe = {
         this.lowerRect.position.x -= left;
         this.lowerRectCap.position.x -= left;
         // return any x coordinate to check if pipe went out of screen
-        return (this.lowerRect.position.x +this.pipeWidth);
+        return (this.lowerRect.position.x + this.pipeWidth);
     },
+
+    // check if point on left or right of pipes (for score)
+    checkPointPosition: function (pointX){
+        // return true if bird on right else return false
+        return (pointX > this.upperRect.position.x);
+    },
+
+    // checks if the Point object collides with the pipes
+    checkCollision: function (obj){
+        if (this.upperRect.intersects(obj) || this.upperRectCap.intersects(obj))
+			return true;
+		else if (this.lowerRect.intersects(obj) || this.lowerRectCap.intersects(obj))
+			return true;
+		return false;
+    }
+
 
 }
 
 // object of the moving buildings
 var Buildings = {
+
     // distance between each pipe
     pipeDistance: 500,
+    
     // velocity with each pipe moves
     velocity: 10,
+    
     // stores the pipe list
     pipeList: [],
+
+    // stores the pipe next to the bird
+    nextPipe: 0,
+    
     // initializes the pipes
     recreatePipeList: function () {
+        // remove all pipes
         for (var t=this.pipeList.length-1; t >= 0; t--){
             this.pipeList.splice(t);
         }
@@ -225,20 +262,80 @@ var Buildings = {
             this.pipeList[this.pipeList.length - 1].resetXPosition(t);
         }
         // set up respawn position
-        this.pipeRespawnX = (buildings.length * (Building.buildWidth + Building.buildDistance));
+        this.pipeRespawnX = this.pipeList.length * this.pipeDistance;
+        // set the next pipe to first one
+        this.nextPipe = 0;
     },
+    
     // resets the game
     reset: function () {
-
+        // stores the position of the pipes
+        var posX = view.viewSize.width;
+        // resets the position of the pipes
+        for (var t = 0; t < this.pipeList.length ; t++) {
+            this.pipeList[t].resetXPosition(posX);
+            posX += this.pipeDistance;
+        }
+        // set next pipe to the first one
+        this.nextPipe = 0;
     },
-    respawnPipe: function (){
-
-    },
+    
+    // move the pipe
     animate: function (){
-        for (var t=0; t < this.pipeList.length; t++){
-			if (!this.pipeList[t].moveToLeftByPX(velocity))		
-                this.pipeList[t]
-        }   
+        console.log(this.pipeList.length)
+        for (var t=0; t < this.pipeList.length; t++)
+        // move the pipes while checking if the pipe went out of the screen
+        if (!this.pipeList[t].moveToLeftByPX(this.velocity))		
+        // reset the position of the pipes
+                this.pipeList[t].resetXPosition(this.pipeRespawnX);
+    },
+
+    // add score: checks if bird has passed the next pipe
+    checkScore: function (birdPosX){
+        // check if bird crossed the pipes
+        if (this.pipeList[this.nextPipe%this.pipeList.length].checkPointPosition(birdPosX)){
+            // srt lookup for the next pipe
+            nextPipe++;
+            return true;
+        } else {
+            return false;
+        }
+
+    },
+
+    // checks collision with the pipes
+    checkCollision: function(bird){
+        return (this.pipeList[this.nextPipe%this.pipeList.length].checkCollision(bird));
     }
 
+}
+
+// iniialized the game
+function init(){
+
+    // reset bird position
+    Bird.resetPosition();
+
+    // create pipe list according to screen size
+    Buildings.recreatePipeList();
+
+}
+
+// set up keyboard buttons
+function onKeyDown(event) {
+	// When a key is released, set the content of the text item:
+	if ((event.key == 'space') && (!Buildings.checkCollision(Bird.bird))){
+		Bird.jump();
+	} else if ((event.key == 'r') || (event.key == 'R')){
+		reset();
+	}
+}
+
+// call init, and initialize everyhting
+init();
+
+// do this on each frame
+function onFrame(event){
+    Bird.animate();
+    Buildings.animate();
 }
