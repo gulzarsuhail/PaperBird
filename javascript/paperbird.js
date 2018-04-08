@@ -1,341 +1,250 @@
+// check the game status
+var gameStopped = false;
 
-// displays and keeps score
-var ScoreBoard = {
-
-    // saves the current score
-    score: 0,
-
-    // saves the top score
-    topScore: 0,
-
-    // the background box of the scorecard
-    scoreCardBackground: new Path.Rectangle({
-        point: [10, 10],
-        size: [230, 90],
-        fillColor: '#3ed6f1',
-        opacity: 0.9
-    }),
-
-    // set up static text 'Top Score'
-    staticTopScoreText: new PointText({
-        point: [35, 45],
-        justification: 'left',
-        fontSize: 25,
-        fillColor: 'white',
-        content: "Top Score",
-        fontFamily: 'Pangolin'
-    }),
-
-    // set up static text 'Score'
-    staticScoreText: new PointText({
-        point: [35, 80],
-        justification: 'left',
-        fontSize: 25,
-        fillColor: 'white',
-        content: "Score",
-        fontFamily: 'Pangolin'
-    }),
-
-    // displays the current score
-    scoreDisplay: new PointText({
-        point: [200, 45],
-        justification: 'right',
-        fontSize: 25,
-        fillColor: 'white',
-        content: 0,
-        fontFamily: 'Pangolin'
-    }),
-
-    // displays the top score
-    topScoreDisplay: new PointText({
-        point: [200, 80],
-        justification: 'right',
-        fontSize: 25,
-        fillColor: 'white',
-        content: 0,
-        fontFamily: 'Pangolin'
-    }),
-
-    // resets the current score for new game
-    resetCurrentScore: function () {
-        this.score = 0;
-    },
-
-    // adds points to the scoreboard
-    addPoint: function (points) {
-        this.score += points;
-        this.refreshScoreBoard();
-    },
-
-    // refreshes scoreboard with new score
-    refreshScoreBoard: function () {
-        if (this.score > this.topScore) {
-            this.topScore = this.score;
-            // top score only needs refresh when new high score is reached
-            this.topScoreDisplay.content = this.topScore;
-        }
-        this.scoreDisplay.content = this.score;
-    }
-
-}
-
+// create the bird object
 var Bird = {
 
-    // set bird gravity velocity
-    velocity: 10,
+    // set the default velocity of the bird
+    velocity: 0,
 
-    // set up new bird
+    // set the gravity
+    gravity: 1.5,
+
+    // crete bird shape
     bird: new Path.Circle({
+        center: [view.viewSize.width * 0.30, view.viewSize.height / 2],
         radius: 20,
-        fillColor: 'red',
-        center: [view.viewSize.width * 0.30, view.viewSize.height / 2]
+        fillColor: 'red'
     }),
 
     // resets the bird position
     resetPosition: function () {
-        // reset bird position to center
-        this.bird.center = [view.viewSize.width * 0.30, view.viewSize.height / 2];
+        this.bird.position.y = view.viewSize.height / 2;
     },
 
-    // check if bird is touch floor
-    birdAtFloor: function () {
-        return (this.bird.position.y >= view.viewSize.height);
+    // checks if the bird is out of the frame
+    checkIfOutOfFrame: function () {
+        // if bird position is outside the top, reset position to top
+        if (this.bird.position.y < 0) {
+            this.bird.position.y = 0;
+            // set velosity to zero on hitting the top
+            this.velocity = 0;
+        }
     },
 
-    // jumps the bird i.e increases its velocity
+    // make the bird jump
     jump: function () {
+        // increase the velocity at each jump
         this.velocity = -20;
     },
 
-    // animates the bird frame by frame
+    // animate the birf
     animate: function () {
-        // prevent bird escaping from top of the screen
-        if (this.bird.position.y < 0) {
-            // set position to 0 px
-            this.bird.position.y = 0;
-            // set velocity to 0 to prevent flaky animation
-            this.velocity = 0;
-        }
-        // moves the bird up or down
+        // check if bird is going out of frame
+        this.checkIfOutOfFrame();
+        // move the bird
         this.bird.position.y += this.velocity;
-        // dosen't let velocity exceed a value
+        // accelate bird due to gravity
         if (this.velocity < 15)
-            this.velocity += 1.5;
+            this.velocity += this.gravity;
+    },
+
+    // checks if bird is on the floor
+    birdAtFloor: function () {
+        return (this.bird.position.y >= view.viewSize.height);
     }
 }
 
-// set up pipes (for collision)
 var Pipe = {
-    
-    // width of each pipe
+
+    // width of each pipe block
     pipeWidth: 100,
-    
-    // space in each pair of sub-pipes
+
+    // width of each pipe caps
+    pipeCapWidth: 110,
+
+    // clearence space
     clearence: 100,
-    
-    // create upper pipe
-    upperRect: new Path.Rectangle({
-        point: [0,0],
-        size: [this.pipeWidth, 25],
-        strokeColor: 'black'
 
-        // fillColor: {
-        //     gradient: {
-        //         stops: [["#42d151", 0.1], ['#38b745', 0.3], ['#1a471e', 1]],
-        //     },
-        //     origin: [0, 0],
-        //     destination: [100, 0]
-        // }
-    }),
+    // the pipe shapes
+    upperRect: null,
+    upperRectCap: null,
+    lowerRect: null,
+    lowerRectCap: null,
 
-    // create upper pipe cap
-    upperRectCap: new Path.Rectangle({
-        point: [0,0],
-        size: [this.pipeWidth + 20, 25],
-        strokeColor: 'black'
+    // sets the position and size of the pipe
+    respawn: function (positionX) {
 
-        // fillColor: {
-        //     gradient: {
-        //         stops: [["#42d151", 0.1], ['#38b745', 0.7], ['#1a471e', 1]],
-        //     },
-        //     origin: [0, 0],
-        //     destination: [100, 0]
-        // }
-    }),
-
-    // create lower pipe
-    lowerRect: new Path.Rectangle({
-        point: [0,0],
-        size: [this.pipeWidth, 25],
-        strokeColor: 'black'
-
-        // fillColor: {
-        //     gradient: {
-        //         stops: [["#42d151", 0.1], ['#38b745', 0.3], ['#1a471e', 1]],
-        //     },
-        //     origin: [0, 0],
-        //     destination: [100, 0]
-        // }
-    }),
-
-    // create lower pipe cap
-    lowerRectCap: new Path.Rectangle({
-        point: [0,0],
-        size: [this.pipeWidth + 20, 25],
-        strokeColor: 'black'
-
-        // fillColor: {
-        //     gradient: {
-        //         stops: [["#42d151", 0.1], ['#38b745', 0.5], ['#1a471e', 1]],
-        //     },
-        //     origin: [0, 0],
-        //     destination: [100, 0]
-        // }
-    }),
-
-    // initialize new pipes
-    resetXPosition: function (positionX) {
+        // generate a random to place the clearence space
         var rand = Math.floor((Math.random() * (view.viewSize.height - this.clearence - 60)) + 30);
+
         // scale the rectriangles
         this.upperRect.scale(1, rand / this.upperRect.bounds.height);
         this.lowerRect.scale(1, (view.viewSize.height - (rand + this.clearence)) / this.lowerRect.bounds.height);
+
         // set the positions	
-        this.upperRect.position = new Point(positionX - this.pipeWidth / 2, this.upperRect.bounds.height / 2);
-        this.lowerRect.position = new Point(positionX - this.pipedWidth / 2, (rand + this.clearence + view.viewSize.height) / 2);
+        this.upperRect.position = new Point(positionX + this.pipeCapWidth / 2, this.upperRect.bounds.height / 2);
+        this.lowerRect.position = new Point(positionX + this.pipeCapWidth / 2, (rand + this.clearence + view.viewSize.height) / 2);
+
         // change the building tops
-        this.upperRectCap.position = new Point(positionX - this.pipeWidth / 2, this.upperRect.bounds.height - 12.5);
-        this.lowerRectCap.position = new Point(positionX - this.pipeWidth / 2, rand + this.clearence);
+        this.upperRectCap.position = new Point(positionX + this.pipeCapWidth / 2, this.upperRect.bounds.height - 12.5);
+        this.lowerRectCap.position = new Point(positionX + this.pipeCapWidth / 2, rand + this.clearence);
     },
 
-    // move pipes left by number of pixels
-    moveToLeftByPX: function (left){
-        this.upperRect.position.x -= left;
-        this.upperRectCap.position.x -= left;
-        this.lowerRect.position.x -= left;
-        this.lowerRectCap.position.x -= left;
-        // return any x coordinate to check if pipe went out of screen
-        return (this.lowerRect.position.x + this.pipeWidth);
+    initialize: function () {
+        // set up pipe properties
+        var mainRectProps = {
+            point: [view.viewSize.width, 0],
+            size: [this.pipeWidth, 25],
+            fillColor: {
+                gradient: {
+                    stops: [["#42d151", 0.1], ['#38b745', 0.3], ['#1a471e', 1]],
+                },
+                origin: [0, 0],
+                destination: [100, 0]
+            }
+        };
+
+        // set up cap pipe properties
+        var capRectProps = {
+            point: [view.viewSize.width, 0],
+            size: [this.pipeCapWidth + 20, 25],
+            fillColor: {
+                gradient: {
+                    stops: [["#42d151", 0.1], ['#38b745', 0.7], ['#1a471e', 1]],
+                },
+                origin: [0, 0],
+                destination: [100, 0]
+            }
+        };
+
+        // create upper pipe
+        this.upperRect = new Path.Rectangle(mainRectProps);
+
+        // create upper pipe cap
+        this.upperRectCap = new Path.Rectangle(capRectProps);
+
+        // create lower pipe
+        this.lowerRect = new Path.Rectangle(mainRectProps);
+
+        // create lower pipe cap
+        this.lowerRectCap = new Path.Rectangle(capRectProps);
     },
 
-    // check if point on left or right of pipes (for score)
-    checkPointPosition: function (pointX){
-        // return true if bird on right else return false
-        return (pointX > this.upperRect.position.x);
+    // animate the pipe
+    animate: function (speed, respawnX) {
+        this.upperRect.position.x -= speed;
+        this.upperRectCap.position.x -= speed;
+        this.lowerRect.position.x -= speed;
+        this.lowerRectCap.position.x -= speed;
+        if (this.lowerRectCap.position.x + this.pipeCapWidth / 2 < 0) {
+            this.respawn(respawnX);
+        }
     },
 
-    // checks if the Point object collides with the pipes
-    checkCollision: function (obj){
+    // check collision
+    checkCollision: function (obj) {
         if (this.upperRect.intersects(obj) || this.upperRectCap.intersects(obj))
-			return true;
-		else if (this.lowerRect.intersects(obj) || this.lowerRectCap.intersects(obj))
-			return true;
-		return false;
+            return true;
+        else if (this.lowerRect.intersects(obj) || this.lowerRectCap.intersects(obj))
+            return true;
+        return false;
     }
-
-
 }
 
-// object of the moving buildings
+// controls the pipes and animates them
 var Buildings = {
 
     // distance between each pipe
     pipeDistance: 500,
-    
-    // velocity with each pipe moves
-    velocity: 10,
-    
+
+    // speed with each pipes move
+    speed: 10,
+
     // stores the pipe list
     pipeList: [],
 
     // stores the pipe next to the bird
     nextPipe: 0,
-    
+
+    // the x position where the pipes will respawn
+    pipeRespawnX: null,
+
     // initializes the pipes
-    recreatePipeList: function () {
-        // remove all pipes
-        for (var t=this.pipeList.length-1; t >= 0; t--){
-            this.pipeList.splice(t);
+    initialize: function () {
+
+        // delete all the pipes
+        for (var t = this.pipeList.length - 1; t >= 0; t--) {
+            delete (this.pipeList[t]);
         }
+
+        // set the x positions of the pipes
         for (var t = view.viewSize.width; t < (2.25 * view.viewSize.width); t += (this.pipeDistance)) {
             this.pipeList.push(Object.create(Pipe));
-            // initiaze new pipe with x position at t
-            this.pipeList[this.pipeList.length - 1].resetXPosition(t);
+            // initialize the pipes
+            this.pipeList[this.pipeList.length - 1].initialize();
+            // spawn the pipes at position t
+            this.pipeList[this.pipeList.length - 1].respawn(t);
         }
+
         // set up respawn position
         this.pipeRespawnX = this.pipeList.length * this.pipeDistance;
+
         // set the next pipe to first one
         this.nextPipe = 0;
+        console.log(this.pipeList);
     },
-    
-    // resets the game
-    reset: function () {
-        // stores the position of the pipes
-        var posX = view.viewSize.width;
-        // resets the position of the pipes
-        for (var t = 0; t < this.pipeList.length ; t++) {
-            this.pipeList[t].resetXPosition(posX);
-            posX += this.pipeDistance;
+
+    // animates the pipes
+    animate: function () {
+        // animate the pipes one by one
+        for (var x = 0; x < this.pipeList.length; x++) {
+            this.pipeList[x].animate(this.speed, this.pipeRespawnX);
         }
-        // set next pipe to the first one
-        this.nextPipe = 0;
-    },
-    
-    // move the pipe
-    animate: function (){
-        console.log(this.pipeList.length)
-        for (var t=0; t < this.pipeList.length; t++)
-        // move the pipes while checking if the pipe went out of the screen
-        if (!this.pipeList[t].moveToLeftByPX(this.velocity))		
-        // reset the position of the pipes
-                this.pipeList[t].resetXPosition(this.pipeRespawnX);
-    },
-
-    // add score: checks if bird has passed the next pipe
-    checkScore: function (birdPosX){
-        // check if bird crossed the pipes
-        if (this.pipeList[this.nextPipe%this.pipeList.length].checkPointPosition(birdPosX)){
-            // srt lookup for the next pipe
-            nextPipe++;
-            return true;
-        } else {
-            return false;
-        }
-
-    },
-
-    // checks collision with the pipes
-    checkCollision: function(bird){
-        return (this.pipeList[this.nextPipe%this.pipeList.length].checkCollision(bird));
     }
 
 }
 
-// iniialized the game
-function init(){
-
-    // reset bird position
+// resets the game
+function resetGame() {
+    // reset the bird position
     Bird.resetPosition();
 
-    // create pipe list according to screen size
-    Buildings.recreatePipeList();
-
+    // resume the game
+    gameStopped = false;
 }
 
 // set up keyboard buttons
 function onKeyDown(event) {
-	// When a key is released, set the content of the text item:
-	if ((event.key == 'space') && (!Buildings.checkCollision(Bird.bird))){
-		Bird.jump();
-	} else if ((event.key == 'r') || (event.key == 'R')){
-		reset();
-	}
+    // When a key is released, set the content of the text item:
+    if (event.key === 'space') {
+        // make the bird jump on space
+        Bird.jump();
+    } else if ((event.key === 'r') || (event.key === 'R')) {
+        // rest the game on R key press
+        resetGame();
+    }
 }
 
-// call init, and initialize everyhting
-init();
+// check if game is lost
+function checkGameLost() {
+    if (Bird.birdAtFloor()) {
+        gameStopped = true;
+    }
+}
+
+// initializes the game
+(function initializeGame() {
+    // Buildings.initialize();
+})();
 
 // do this on each frame
-function onFrame(event){
-    Bird.animate();
-    Buildings.animate();
+function onFrame(event) {
+    if (!gameStopped) {
+        // animate the bird
+        Bird.animate();
+
+        Buildings.animate();
+    }
+    // checkGameLost();
 }
