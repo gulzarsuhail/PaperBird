@@ -25,6 +25,88 @@ var Background = {
 
 }
 
+// the main message (extends over the canvas)
+var Message = {
+
+    // the placeholder for the text
+    text: null,
+
+    // saves the animation frame count
+    animationFrame: 0,
+
+    // checks the visibility of the text
+    visibility: true,
+
+    // initialized the message
+    initialize: function () {
+
+        // initialize the text
+        this.text = new PointText({
+            content: 'Press space key to start game',
+            fillColor: 'white',
+            fontFamily: 'Pangolin',
+            fontWeight: 'bold',
+            fontSize: 25,
+            opacity: 1,
+            position: new Point(view.viewSize.width / 2, view.viewSize.height * 0.8)
+        });
+    },
+
+    // changes opacity on frames, for user attention
+    animate: function () {
+        // only animate if visible on screen
+        if (this.visibility) {
+
+            // only animate if this is 10th frame
+            if (this.animationFrame % 10 === 0) {
+
+                // increase opaciry in first 50 frames
+                if (this.animationFrame < 50) {
+                    this.text.opacity -= 0.1;
+                } else if (this.animationFrame < 100) {
+                    this.text.opacity += 0.1;
+                }
+
+            }
+
+            // only let the frame count be beteen 0 and 100
+            if (this.animationFrame >= 100) {
+                this.animationFrame = 0;
+            } else {
+                // increament the frame count
+                this.animationFrame++;
+            }
+
+        }
+    },
+
+    // changes the text and display on screen
+    setTextAndShow: function (str) {
+        if (!this.visibility) {
+            // change the text
+            this.text.content = str;
+            // aling text to center
+            this.text.position = new Point(view.viewSize.width / 2, view.viewSize.height * 0.8);
+            // display on screen
+            this.show();
+        }
+    },
+
+    // shows the text on screen
+    show: function () {
+        this.text.opacity = 1;
+        this.visibility = true;
+    },
+    
+    // hides text from display
+    hide: function () {
+        this.text.opacity = 0;
+        this.visibility = false;
+        console.log('hid message: '+this.visibility)
+    }
+
+}
+
 // displays and keeps score
 var ScoreBoard = {
 
@@ -101,13 +183,6 @@ var ScoreBoard = {
             fontFamily: font
         });
 
-        // bring the scoreboard to the front
-        this.scoreCardBackground.bringToFront();
-        this.staticScoreText.bringToFront();
-        this.staticTopScoreText.bringToFront();
-        this.scoreDisplay.bringToFront();
-        this.topScoreDisplay.bringToFront();
-
     },
 
     // resets the current score for new game
@@ -123,11 +198,15 @@ var ScoreBoard = {
 
     // refreshes scoreboard with new score
     refreshScoreBoard: function () {
+
+        // check if current score is the high score
         if (this.score > this.topScore) {
             this.topScore = this.score;
             // top score only needs refresh when new high score is reached
             this.topScoreDisplay.content = this.topScore;
         }
+
+        // change the score on screen
         this.scoreDisplay.content = this.score;
     }
 
@@ -148,39 +227,58 @@ var Bird = {
     // set the jump height
     jumpHeight: view.viewSize.height * 0.0275,
 
+    // used to check if appearence of the bird needs to be changed
+    appearenceFrame: 0,
+
+    // idle image list, each will be used one by one
+    idleImages: [
+        "/assets/idle/2.png",
+        "/assets/idle/3.png",
+        "/assets/idle/4.png",
+        "/assets/idle/1.png",
+    ],
+
+
+    // lost image list, each will be used one by one
+    lostImages: [
+        "/assets/hit/1.png",
+        "/assets/hit/2.png",
+    ],
+
+    // the current image of bird
+    currentImage: 0,
+
     // initiazlizes the bird
     initialize: function () {
-        // crete bird shape
-        // this.bird = new Path.Circle({
-        //     center: [view.viewSize.width * 0.30, view.viewSize.height / 2],
-        //     radius: view.viewSize.height * 0.025,
-        //     fillColor: 'red'
-        // });
+        // crete bird
         this.bird = new paper.Raster({
-            source: '/assets/idle/1.png',
+            source: this.idleImages[0],
             position: [view.viewSize.width * 0.30, view.viewSize.height / 2],
         });
 
-        console.log(view.viewSize.height * 0.025)
-
         // scale the image according to screen size
         this.bird.scale(0.000065 * view.viewSize.height, 0.000065 * view.viewSize.height);
-        
+
     },
 
     // resets the bird position
-    resetPosition: function () {
+    reset: function () {
         this.bird.position.y = view.viewSize.height / 2;
+        this.bird.image.src = this.idleImages[0];
+        this.appearenceFrame = 0;
+
     },
 
     // checks if the bird is out of the frame
     checkIfOutOfFrame: function () {
+
         // if bird position is outside the top, reset position to top
         if (this.bird.position.y < 0) {
             this.bird.position.y = 0;
             // set velosity to zero on hitting the top
             this.velocity = 0;
         }
+
     },
 
     // make the bird jump
@@ -189,15 +287,51 @@ var Bird = {
         this.velocity = -this.jumpHeight;
     },
 
+    // changes the appearence of bird, based on conditions
+    changeAppearenceIdle: function () {
+        if (this.appearenceFrame >= 8) {
+            this.currentImage = ++this.currentImage % this.idleImages.length;
+            // change to the next image
+            this.bird.image.src = this.idleImages[this.currentImage];
+            this.appearenceFrame = 0;
+        }
+        // use 
+        this.appearenceFrame++;
+    },
+
+
+    // changes the appearence of bird, based on conditions
+    changeAppearenceLost: function () {
+        if (this.appearenceFrame >= 5) {
+            this.currentImage = ++this.currentImage % this.lostImages.length;
+            // change to the next image
+            this.bird.image.src = this.lostImages[this.currentImage];
+            this.appearenceFrame = 0;
+        }
+        // use 
+        this.appearenceFrame++;
+    },
+
     // animate the bird
-    animate: function () {
+    animate: function (lost) {
+
+        // animate image
+        if (lost) {
+            this.changeAppearenceIdle();
+        } else {
+            this.changeAppearenceLost();
+        }
+
         // check if bird is going out of frame
         this.checkIfOutOfFrame();
+
         // move the bird
         this.bird.position.y += this.velocity;
+
         // accelate bird due to gravity
         if (this.velocity < 15)
             this.velocity += this.gravity;
+
     },
 
     // checks if bird is on the floor
@@ -209,16 +343,16 @@ var Bird = {
 var Pipe = {
 
     // width of each pipe block
-    pipeWidth: 100,
+    pipeWidth: Math.floor(view.viewSize.height * 0.16),
 
     // width of each pipe caps
-    pipeCapWidth: 110,
+    pipeCapWidth: Math.floor(view.viewSize.height * 0.164),
 
     // clearence space
-    clearence: view.viewSize.height * 0.275,
+    clearence: Math.floor(view.viewSize.height * 0.275),
 
     // height of the caps
-    capHeight: 25,
+    capHeight: Math.floor(view.viewSize.height * 0.032),
 
     // the pipe shapes
     upperRect: null,
@@ -243,12 +377,14 @@ var Pipe = {
         this.upperRect.position = new Point(calcX, this.upperRect.bounds.height / 2);
         this.lowerRect.position = new Point(calcX, (rand + this.clearence + view.viewSize.height) / 2);
 
-        // change the building tops
+        // change position of the building tops (caps)
         this.upperRectCap.position = new Point(calcX, this.upperRect.bounds.height - this.capHeight / 2);
         this.lowerRectCap.position = new Point(calcX, rand + this.clearence + this.capHeight / 2);
     },
 
-    init: function () {
+    // initialises the pipe
+    initialize: function () {
+
         // set up pipe properties
         var mainRectProps = {
             point: [view.viewSize.width, this.capHeight],
@@ -292,13 +428,18 @@ var Pipe = {
 
     // animate the pipe
     animate: function (speed, respawnX) {
+
+        // change position of all pipe elements
         this.upperRect.position.x -= speed;
         this.upperRectCap.position.x -= speed;
         this.lowerRect.position.x -= speed;
         this.lowerRectCap.position.x -= speed;
+
+        // respawn pipe if going out of screen
         if (this.lowerRectCap.position.x + this.pipeCapWidth / 2 < 0) {
             this.respawn(respawnX);
         }
+
     },
 
     // check collision
@@ -311,6 +452,10 @@ var Pipe = {
         return (this.lowerRectCap.position.x + this.pipeCapWidth < obj.position.x);
     },
 
+    // returns the top width of the pipe
+    getTopWidth: function () {
+        return this.pipeWidth;
+    }
 }
 
 // controls the pipes and animates them
@@ -332,7 +477,7 @@ var Buildings = {
     pipeRespawnX: null,
 
     // initializes the pipes
-    init: function () {
+    initialize: function () {
 
         // delete all the pipes
         for (var t = this.pipeList.length - 1; t >= 0; t--) {
@@ -343,7 +488,7 @@ var Buildings = {
         for (var t = view.viewSize.width; t < (2 * view.viewSize.width); t += (this.pipeDistance)) {
             this.pipeList.push(Object.create(Pipe));
             // initialize the pipes
-            this.pipeList[this.pipeList.length - 1].init();
+            this.pipeList[this.pipeList.length - 1].initialize();
         }
 
         // set the x positions of the pipes
@@ -360,8 +505,8 @@ var Buildings = {
         }
 
         // set up respawn position
-        this.pipeRespawnX = this.pipeList.length * this.pipeDistance;
-
+        this.pipeRespawnX = (this.pipeList.length * this.pipeDistance) - (this.pipeList[0].getTopWidth());
+       
         // set the next pipe to first one
         this.nextPipe = 0;
 
@@ -394,8 +539,12 @@ var Buildings = {
 
 // resets the game
 function resetGame() {
+
+    // hide the message
+    Message.hide();
+
     // reset the bird position
-    Bird.resetPosition();
+    Bird.reset();
 
     // reset the pipe positions
     Buildings.resetPipePositions();
@@ -405,7 +554,7 @@ function resetGame() {
 
     // set the collison flag to false
     birdCollided = false;
-    
+
     // pause the game, until space bar is pressed
     gamePaused = true;
 
@@ -415,21 +564,29 @@ function resetGame() {
 
 // check if game is lost
 function checkGameLost() {
-    
+
     // check if bird is at the floor
     gameStopped = Bird.birdAtFloor();
 
     // only check for collison, if bird has not collided previously    
-    if (!birdCollided){
+    if (!birdCollided) {
         // check if bird collided
         birdCollided = Buildings.collision(Bird.bird);
     }
 
     // send bird to floor at collision
     if (birdCollided && !gameStopped) {
-        Bird.animate();
+        // animate bird to drop down
+        Bird.animate(false);
     }
+
+    // if game stopped, display message
+    if (gameStopped) {
+        Message.setTextAndShow('Oh, the bird is hurt :(  Press Space or R to restart');
+    }
+
 }
+
 
 // set up keyboard buttons
 function onKeyDown(event) {
@@ -443,10 +600,10 @@ function onKeyDown(event) {
         }
 
         // if game is paused, resume
-        if (gamePaused){
+        if (gamePaused) {
             gamePaused = false;
         }
-        
+
         // if bird has not colided, jump
         if (!birdCollided) {
             // make the bird jump on space
@@ -462,23 +619,30 @@ function onKeyDown(event) {
 // initializes the game
 (function initGame() {
 
+    // initialize objects in terms of appearence
+
     // initialize the pipes in Buildings
-    Buildings.init();
-    
-    // initialize scoreboard after buildings, so scoreboard stays on top
+    Buildings.initialize();
+
+    // initialize scoreboard
     ScoreBoard.initialize();
 
     // initiazlie the bird
     Bird.initialize();
 
+    // initialze the message
+    Message.initialize();
+
 })();
 
 // do this on each frame
 function onFrame(event) {
+
+    // only animate if playing circumstances are met
     if (!birdCollided && !gameStopped && !gamePaused) {
 
         // animate the bird
-        Bird.animate();
+        Bird.animate(true);
 
         // animate the buildings
         Buildings.animate();
@@ -488,9 +652,14 @@ function onFrame(event) {
             // if crossed, add to score
             ScoreBoard.addPoint(1);
         }
-    
+
     }
 
-    // check if game 
-    checkGameLost();
+    // animate the message
+    Message.animate();
+
+    // check if game lost
+    if (!gameStopped){
+        checkGameLost();
+    }
 }
