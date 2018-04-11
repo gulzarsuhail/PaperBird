@@ -8,19 +8,69 @@ var birdCollided = false;
 // the background of the game
 var Background = {
 
-    sky: new Path.Rectangle({
-        topLeft: [0, 0],
-        bottomRight: [view.viewSize.width, view.viewSize.height],
-        // Fill the path with a gradient of three color stops
-        // that runs between the two points we defined earlier:
-        fillColor: {
-            gradient: {
-                stops: ['#d9f3f7', '#71b3ba', '#446d72']
-            },
-            origin: [0, 0],
-            destination: [0, view.viewSize.height]
+    // the cloud image list
+    cloudImageList: [
+        "/assets/clouds/1.png",
+        "/assets/clouds/2.png",
+        "/assets/clouds/3.png",
+        "/assets/clouds/4.png",
+    ],
+
+    // place holders for objects
+    sky: null,
+    clouds: [],
+
+    // initialized the background
+    initialize: function () {
+
+        // initialize the sky
+        this.sky = new Path.Rectangle({
+            topLeft: [0, 0],
+            bottomRight: [view.viewSize.width, view.viewSize.height],
+            // Fill the path with a gradient of three color stops
+            // that runs between the two points we defined earlier:
+            fillColor: {
+                gradient: {
+                    stops: ['#d9f3f7', '#71b3ba', '#446d72']
+                },
+                origin: [0, 0],
+                destination: [0, view.viewSize.height]
+            }
+        });
+
+        // initialize the clouds
+        for (var x = view.viewSize.width; x < 2*view.viewSize.width; x += 500) {
+            // add new clouds
+            this.clouds.push(
+                new paper.Raster({
+                    source: this.cloudImageList[x%500],
+                    position: [x, view.viewSize.height * 0.4],
+                    opacity: 0.5
+                })
+            );
+            // scale the clouds
+            this.clouds[(x- view.viewSize.width)/500].scale(0.00075 * view.viewSize.height, 0.00075 * view.viewSize.height);
+            // randomize the cloud position
+            // this.shuffleCloudPosition((x- view.viewSize.width)/500);
         }
-    }),
+    },
+
+    // shuffle clouds to random positions
+    shuffleCloudPosition: function(cloudNumber){
+        this.clouds[cloudNumber].position[ 200 , 200];
+    },
+
+    // animate the clouds
+    animate: function(){
+        for (var x=0;x<this.clouds.length;x++){
+            this.clouds[x].position.x -= 10;
+            // shuffle the cloud position if it is off the screen
+            if (this.clouds[x].position < -100){
+                this.shuffleCloudPosition(x);
+            }
+        }
+    },
+
 
 
 }
@@ -97,12 +147,11 @@ var Message = {
         this.text.opacity = 1;
         this.visibility = true;
     },
-    
+
     // hides text from display
     hide: function () {
         this.text.opacity = 0;
         this.visibility = false;
-        console.log('hid message: '+this.visibility)
     }
 
 }
@@ -232,17 +281,17 @@ var Bird = {
 
     // idle image list, each will be used one by one
     idleImages: [
-        "/assets/idle/2.png",
-        "/assets/idle/3.png",
-        "/assets/idle/4.png",
-        "/assets/idle/1.png",
+        "/assets/bird/idle/2.png",
+        "/assets/bird/idle/3.png",
+        "/assets/bird/idle/4.png",
+        "/assets/bird/idle/1.png",
     ],
 
 
     // lost image list, each will be used one by one
     lostImages: [
-        "/assets/hit/1.png",
-        "/assets/hit/2.png",
+        "/assets/bird/hit/1.png",
+        "/assets/bird/hit/2.png",
     ],
 
     // the current image of bird
@@ -352,7 +401,7 @@ var Pipe = {
     clearence: Math.floor(view.viewSize.height * 0.275),
 
     // height of the caps
-    capHeight: Math.floor(view.viewSize.height * 0.032),
+    capHeight: Math.floor(view.viewSize.height * 0.032 + 1),
 
     // the pipe shapes
     upperRect: null,
@@ -506,7 +555,7 @@ var Buildings = {
 
         // set up respawn position
         this.pipeRespawnX = (this.pipeList.length * this.pipeDistance) - (this.pipeList[0].getTopWidth());
-       
+
         // set the next pipe to first one
         this.nextPipe = 0;
 
@@ -588,27 +637,30 @@ function checkGameLost() {
 }
 
 
+function startJumping() {
+    // if game is stopped, reset the game
+    if (gameStopped) {
+        resetGame();
+    }
+
+    // if game is paused, resume
+    if (gamePaused) {
+        gamePaused = false;
+    }
+
+    // if bird has not colided, jump
+    if (!birdCollided) {
+        // make the bird jump on space
+        Bird.jump();
+    }
+}
+
 // set up keyboard buttons
 function onKeyDown(event) {
 
     // When a key is released, set the content of the text item:
     if (event.key === 'space') {
-
-        // if game is stopped, reset the game
-        if (gameStopped) {
-            resetGame();
-        }
-
-        // if game is paused, resume
-        if (gamePaused) {
-            gamePaused = false;
-        }
-
-        // if bird has not colided, jump
-        if (!birdCollided) {
-            // make the bird jump on space
-            Bird.jump();
-        }
+        startJumping();
 
     } else if ((event.key === 'r') || (event.key === 'R')) {
         // rest the game on R key press
@@ -616,10 +668,17 @@ function onKeyDown(event) {
     }
 }
 
+function onMouseDown(event) {
+    startJumping();
+}
+
 // initializes the game
 (function initGame() {
 
     // initialize objects in terms of appearence
+
+    // iniatialize the background
+    Background.initialize();
 
     // initialize the pipes in Buildings
     Buildings.initialize();
@@ -653,13 +712,16 @@ function onFrame(event) {
             ScoreBoard.addPoint(1);
         }
 
+        // animate clouds
+        Background.animate();
+
     }
 
     // animate the message
     Message.animate();
 
     // check if game lost
-    if (!gameStopped){
+    if (!gameStopped) {
         checkGameLost();
     }
 }
