@@ -8,17 +8,8 @@ var birdCollided = false;
 // the background of the game
 var Background = {
 
-    // the cloud image list
-    cloudImageList: [
-        "/assets/clouds/1.png",
-        "/assets/clouds/2.png",
-        "/assets/clouds/3.png",
-        "/assets/clouds/4.png",
-    ],
-
     // place holders for objects
     sky: null,
-    clouds: [],
 
     // initialized the background
     initialize: function () {
@@ -37,41 +28,7 @@ var Background = {
                 destination: [0, view.viewSize.height]
             }
         });
-
-        // initialize the clouds
-        for (var x = view.viewSize.width; x < 2*view.viewSize.width; x += 500) {
-            // add new clouds
-            this.clouds.push(
-                new paper.Raster({
-                    source: this.cloudImageList[x%500],
-                    position: [x, view.viewSize.height * 0.4],
-                    opacity: 0.5
-                })
-            );
-            // scale the clouds
-            this.clouds[(x- view.viewSize.width)/500].scale(0.00075 * view.viewSize.height, 0.00075 * view.viewSize.height);
-            // randomize the cloud position
-            // this.shuffleCloudPosition((x- view.viewSize.width)/500);
-        }
-    },
-
-    // shuffle clouds to random positions
-    shuffleCloudPosition: function(cloudNumber){
-        this.clouds[cloudNumber].position[ 200 , 200];
-    },
-
-    // animate the clouds
-    animate: function(){
-        for (var x=0;x<this.clouds.length;x++){
-            this.clouds[x].position.x -= 10;
-            // shuffle the cloud position if it is off the screen
-            if (this.clouds[x].position < -100){
-                this.shuffleCloudPosition(x);
-            }
-        }
-    },
-
-
+    }
 
 }
 
@@ -281,8 +238,6 @@ var Bird = {
 
     // idle image list, each will be used one by one
     idleImages: [
-        "/assets/bird/idle/2.png",
-        "/assets/bird/idle/3.png",
         "/assets/bird/idle/4.png",
         "/assets/bird/idle/1.png",
     ],
@@ -291,7 +246,6 @@ var Bird = {
     // lost image list, each will be used one by one
     lostImages: [
         "/assets/bird/hit/1.png",
-        "/assets/bird/hit/2.png",
     ],
 
     // the current image of bird
@@ -338,7 +292,7 @@ var Bird = {
 
     // changes the appearence of bird, based on conditions
     changeAppearenceIdle: function () {
-        if (this.appearenceFrame >= 8) {
+        if (this.appearenceFrame >= 20) {
             this.currentImage = ++this.currentImage % this.idleImages.length;
             // change to the next image
             this.bird.image.src = this.idleImages[this.currentImage];
@@ -711,9 +665,6 @@ function onFrame(event) {
             // if crossed, add to score
             ScoreBoard.addPoint(1);
         }
-
-        // animate clouds
-        Background.animate();
 
     }
 
