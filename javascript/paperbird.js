@@ -238,14 +238,14 @@ var Bird = {
 
     // idle image list, each will be used one by one
     idleImages: [
-        "/assets/bird/idle/4.png",
-        "/assets/bird/idle/1.png",
+        location.href + "/assets/bird/idle/4.png",
+        location.href + "/assets/bird/idle/1.png",
     ],
 
 
     // lost image list, each will be used one by one
     lostImages: [
-        "/assets/bird/hit/1.png",
+        location.href + "/assets/bird/hit/1.png",
     ],
 
     // the current image of bird
