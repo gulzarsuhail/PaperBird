@@ -18,7 +18,8 @@ var Background = {
         this.sky = new Path.Rectangle({
             topLeft: [0, 0],
             bottomRight: [view.viewSize.width, view.viewSize.height],
-            // Fill the path with a gradient
+            // Fill the path with a gradient of three color stops
+            // that runs between the two points we defined earlier:
             fillColor: {
                 gradient: {
                     stops: ['#d9f3f7', '#71b3ba', '#446d72']
@@ -66,7 +67,7 @@ var Message = {
             // only animate if this is 10th frame
             if (this.animationFrame % 10 === 0) {
 
-                // increase opacity in first 50 frames
+                // increase opaciry in first 50 frames
                 if (this.animationFrame < 50) {
                     this.text.opacity -= 0.1;
                 } else if (this.animationFrame < 100) {
@@ -227,10 +228,10 @@ var Bird = {
     velocity: 0,
 
     // set the gravity
-    gravity: view.viewSize.height * 0.0017,
+    gravity: Math.floor(view.viewSize.height * 0.0017),
 
     // set the jump height
-    jumpHeight: view.viewSize.height * 0.0275,
+    jumpHeight: Math.floor(view.viewSize.height * 0.0275),
 
     // used to check if appearence of the bird needs to be changed
     appearenceFrame: 0,
@@ -241,10 +242,15 @@ var Bird = {
         location.href + "/assets/bird/idle/1.png",
     ],
 
+
     // lost image list, each will be used one by one
     lostImages: [
         location.href + "/assets/bird/hit/1.png",
     ],
+
+    // define the sounds
+    jumpsound: new Audio('/assets/sounds/jump.mp3'),
+
 
     // the current image of bird
     currentImage: 0,
@@ -267,6 +273,7 @@ var Bird = {
         this.bird.position.y = view.viewSize.height / 2;
         this.bird.image.src = this.idleImages[0];
         this.appearenceFrame = 0;
+
     },
 
     // checks if the bird is out of the frame
@@ -283,6 +290,8 @@ var Bird = {
 
     // make the bird jump
     jump: function () {
+        // play jump sound
+        this.jumpsound.play();
         // increase the velocity at each jump
         this.velocity = -this.jumpHeight;
     },
@@ -367,7 +376,7 @@ var Pipe = {
         var calcX = positionX + this.pipeCapWidth / 2;
 
         // generate a random to place the clearence space
-        var rand = Math.floor((Math.random() * (view.viewSize.height - this.clearence - 60)) + 30);
+        var rand = Math.floor(Math.floor((Math.random() * (view.viewSize.height - this.clearence - 60)) + 30));
 
         // scale the rectriangles
         this.upperRect.scale(1, rand / this.upperRect.bounds.height);
@@ -392,7 +401,11 @@ var Pipe = {
             point: [0, 0],
             fillColor: {
                 gradient: {
-                    stops: [["#42d151", 0.1], ['#38b745', 0.3], ['#1a471e', 1]],
+                    stops: [
+                        ["#42d151", 0.1],
+                        ['#38b745', 0.3],
+                        ['#1a471e', 1]
+                    ],
                 },
                 origin: [0, 0],
                 destination: [100, 0]
@@ -406,7 +419,11 @@ var Pipe = {
             point: [0, 0],
             fillColor: {
                 gradient: {
-                    stops: [["#42d151", 0.1], ['#38b745', 0.7], ['#1a471e', 1]],
+                    stops: [
+                        ["#42d151", 0.1],
+                        ['#38b745', 0.7],
+                        ['#1a471e', 1]
+                    ],
                 },
                 origin: [0, 0],
                 destination: [100, 0]
@@ -462,7 +479,7 @@ var Pipe = {
 var Buildings = {
 
     // distance between each pipe
-    pipeDistance: view.viewSize.height * 0.75,
+    pipeDistance: Math.floor(view.viewSize.height * 0.75),
 
     // speed with each pipes move
     speed: 10,
@@ -476,12 +493,15 @@ var Buildings = {
     // the x position where the pipes will respawn
     pipeRespawnX: null,
 
+    // define sound to play when anything hits the pipe
+    hitsound: new Audio('/assets/sounds/hit.mp3'),
+
     // initializes the pipes
     initialize: function () {
 
         // delete all the pipes
         for (var t = this.pipeList.length - 1; t >= 0; t--) {
-            delete (this.pipeList[t]);
+            delete(this.pipeList[t]);
         }
 
         // set the x positions of the pipes
@@ -532,7 +552,13 @@ var Buildings = {
 
     // checks collision with the buildings
     collision: function (bird) {
-        return (this.pipeList[this.nextPipe].checkCollision(bird));
+        if (this.pipeList[this.nextPipe].checkCollision(bird)){
+            // play hit sound on collision
+            this.hitsound.play();
+            return true;
+        } else {
+            return false;
+        }
     }
 
 }
