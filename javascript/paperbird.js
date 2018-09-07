@@ -18,8 +18,7 @@ var Background = {
         this.sky = new Path.Rectangle({
             topLeft: [0, 0],
             bottomRight: [view.viewSize.width, view.viewSize.height],
-            // Fill the path with a gradient of three color stops
-            // that runs between the two points we defined earlier:
+            // Fill the path with a gradient
             fillColor: {
                 gradient: {
                     stops: ['#d9f3f7', '#71b3ba', '#446d72']
@@ -67,7 +66,7 @@ var Message = {
             // only animate if this is 10th frame
             if (this.animationFrame % 10 === 0) {
 
-                // increase opaciry in first 50 frames
+                // increase opacity in first 50 frames
                 if (this.animationFrame < 50) {
                     this.text.opacity -= 0.1;
                 } else if (this.animationFrame < 100) {
@@ -242,7 +241,6 @@ var Bird = {
         location.href + "/assets/bird/idle/1.png",
     ],
 
-
     // lost image list, each will be used one by one
     lostImages: [
         location.href + "/assets/bird/hit/1.png",
@@ -269,7 +267,6 @@ var Bird = {
         this.bird.position.y = view.viewSize.height / 2;
         this.bird.image.src = this.idleImages[0];
         this.appearenceFrame = 0;
-
     },
 
     // checks if the bird is out of the frame
