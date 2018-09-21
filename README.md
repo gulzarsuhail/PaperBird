@@ -1,4 +1,4 @@
-# PapaerBird
+# PaperBird
 
 ## A clone of Flappy Birds writen in javascript using paper.js
 
