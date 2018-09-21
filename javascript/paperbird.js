@@ -239,18 +239,18 @@ var Bird = {
 
     // idle image list, each will be used one by one
     idleImages: [
-        location.href + "/assets/bird/idle/4.png",
-        location.href + "/assets/bird/idle/1.png",
+        "./assets/bird/idle/4.png",
+        "./assets/bird/idle/1.png",
     ],
 
 
     // lost image list, each will be used one by one
     lostImages: [
-        location.href + "/assets/bird/hit/1.png",
+        "./assets/bird/hit/1.png",
     ],
 
     // define the sounds
-    jumpsound: new Audio(location.href + '/assets/sounds/jump.mp3'),
+    jumpsound: new Audio('./assets/sounds/jump.mp3'),
 
 
     // the current image of bird
@@ -495,22 +495,22 @@ var Buildings = {
     pipeRespawnX: null,
 
     // define sound to play when anything hits the pipe
-    hitsound: new Audio(location.href + '/assets/sounds/hit.mp3'),
+    hitsound: new Audio('./assets/sounds/hit.mp3'),
 
     // initializes the pipes
     initialize: function () {
 
-        // delete all the pipes
-        for (var t = this.pipeList.length - 1; t >= 0; t--) {
-            delete(this.pipeList[t]);
-        }
+        // the temp array
+        var building_list = [];
 
         // set the x positions of the pipes
         for (var t = view.viewSize.width; t < (2 * view.viewSize.width); t += (this.pipeDistance)) {
-            this.pipeList.push(Object.create(Pipe));
+            building_list.push(Object.create(Pipe));
             // initialize the pipes
-            this.pipeList[this.pipeList.length - 1].initialize();
+            building_list[building_list.length - 1].initialize();
         }
+
+        this.pipeList = building_list;
 
         // set the x positions of the pipes
         this.resetPipePositions();
@@ -553,7 +553,7 @@ var Buildings = {
 
     // checks collision with the buildings
     collision: function (bird) {
-        if (this.pipeList[this.nextPipe].checkCollision(bird)){
+        if (this.pipeList[this.nextPipe].checkCollision(bird)) {
             // play hit sound on collision
             this.hitsound.play();
             return true;
@@ -651,7 +651,7 @@ function onMouseDown(event) {
 }
 
 // initializes the game
-(function initGame() {
+var initGame = function initGame() {
 
     // initialize objects in terms of appearence
 
@@ -670,7 +670,10 @@ function onMouseDown(event) {
     // initialze the message
     Message.initialize();
 
-})();
+};
+
+// initiaze the game
+initGame();
 
 // do this on each frame
 function onFrame(event) {
@@ -700,3 +703,6 @@ function onFrame(event) {
         checkGameLost();
     }
 }
+
+// on screen size change, do this
+window.onresize = initGame;
