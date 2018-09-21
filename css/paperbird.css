@@ -4,7 +4,46 @@ body {
     overflow: hidden;
     height: 100%;
 }
+
 canvas[resize] {
     width: 100%;
     height: 100%;
+}
+
+* {
+    font-family: 'Pangolin'
+}
+
+.outerbox {
+    display: flex;
+    align-items: center;
+    align-content: center;
+    flex-direction: column;
+    width: 100%;
+    height: 100%;
+    background: rgb(255, 255, 255);
+    align-content: center;
+}
+
+.innerbox {
+    padding: 50px 10px;
+    -webkit-box-shadow: 11px 10px 5px 0px rgba(237, 237, 237, 1);
+    -moz-box-shadow: 11px 10px 5px 0px rgba(237, 237, 237, 1);
+    box-shadow: 11px 10px 5px 0px rgba(237, 237, 237, 1);
+    max-width: 500px;
+    background: #e9e500;
+    border-radius: 10px;
+    position: absolute;
+    color: white;
+    margin: 30% 10px;
+}
+
+img {
+    width: 70px;
+    margin: 0 auto;
+    display: block;
+}
+
+h2 {
+    text-align: center;
 }

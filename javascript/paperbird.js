@@ -194,6 +194,7 @@ var ScoreBoard = {
     // resets the current score for new game
     resetCurrentScore: function () {
         this.score = 0;
+        this.refreshScoreBoard();
     },
 
     // adds points to the scoreboard
@@ -249,7 +250,7 @@ var Bird = {
     ],
 
     // define the sounds
-    jumpsound: new Audio('/assets/sounds/jump.mp3'),
+    jumpsound: new Audio(location.href + '/assets/sounds/jump.mp3'),
 
 
     // the current image of bird
@@ -494,7 +495,7 @@ var Buildings = {
     pipeRespawnX: null,
 
     // define sound to play when anything hits the pipe
-    hitsound: new Audio('/assets/sounds/hit.mp3'),
+    hitsound: new Audio(location.href + '/assets/sounds/hit.mp3'),
 
     // initializes the pipes
     initialize: function () {

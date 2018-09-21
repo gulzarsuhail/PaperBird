@@ -7,13 +7,25 @@
     <script type="text/javascript" src="javascript/howler.js"></script>
     <script type="text/javascript" src="javascript/paper-full.min.js"></script>
     <script type="text/paperscript" src="javascript/paperbird.js" canvas="myCanvas"></script>
-
+    <meta name='viewport' content="width=width-device, initial-scale=1">
+    <title>PaperBird</title>
 </head>
 
 <body>
     <!-- canvas for the paperscript -->
-    <canvas id="myCanvas" resize>
+    <canvas id="myCanvas" style="display: none;" resize>
     </canvas>
+
+    <div id="mobileError" class="outerbox" style="display: none;">
+        <span class="innerbox">
+            <img src="/assets/bird/hit/1.png">
+            <h2>Mobile Device Detected</h2>
+            <h3>Sorry this game is not compatable with mobile devices.</h3>
+            <h3>Maybe try this game on a desktop?</h3>
+        </span>
+    </div>
+
+    <script type="text/javascript" src="javascript/checkMobile.js"></script>
 </body>
 
 </html>
